@@ -192,3 +192,81 @@ exports.getComplaintStats = async (req, res) => {
         });
     }
 };
+
+// @desc    Add comment to complaint
+// @route   POST /api/complaints/:id/comments
+// @access  Private
+exports.addComment = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        const comment = {
+            user: req.user._id,
+            text: req.body.text,
+        };
+
+        complaint.comments.push(comment);
+        await complaint.save();
+
+        const updatedComplaint = await Complaint.findById(req.params.id)
+            .populate('comments.user', 'name role');
+
+        res.json({
+            success: true,
+            data: updatedComplaint.comments[updatedComplaint.comments.length - 1],
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// @desc    Upvote complaint
+// @route   POST /api/complaints/:id/upvote
+// @access  Private
+exports.upvoteComplaint = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Check if user has already upvoted
+        const upvoteIndex = complaint.upvotedBy.indexOf(req.user._id);
+
+        if (upvoteIndex === -1) {
+            // Add upvote
+            complaint.upvotedBy.push(req.user._id);
+            complaint.upvotes += 1;
+        } else {
+            // Remove upvote (toggle)
+            complaint.upvotedBy.splice(upvoteIndex, 1);
+            complaint.upvotes -= 1;
+        }
+
+        await complaint.save();
+
+        res.json({
+            success: true,
+            upvotes: complaint.upvotes,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};

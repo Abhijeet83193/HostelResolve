@@ -6,6 +6,8 @@ const {
     getComplaintById,
     updateComplaint,
     getComplaintStats,
+    addComment,
+    upvoteComplaint,
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -17,6 +19,9 @@ router.route('/')
     .post(createComplaint);
 
 router.get('/stats', getComplaintStats);
+
+router.post('/:id/comments', addComment);
+router.post('/:id/upvote', upvoteComplaint);
 
 router.route('/:id')
     .get(getComplaintById)
