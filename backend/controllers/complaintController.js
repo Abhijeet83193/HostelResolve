@@ -312,3 +312,47 @@ exports.upvoteComplaint = async (req, res) => {
         });
     }
 };
+
+// @desc    Delete complaint
+// @route   DELETE /api/complaints/:id
+// @access  Private
+exports.deleteComplaint = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Authorization: Only creator (if pending) or warden can delete
+        if (req.user.role !== 'warden') {
+            if (complaint.createdBy.toString() !== req.user._id.toString()) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Not authorized to delete this complaint',
+                });
+            }
+            if (complaint.status !== 'Pending') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot delete complaint once it is beyond Pending status',
+                });
+            }
+        }
+
+        await complaint.deleteOne();
+
+        res.json({
+            success: true,
+            message: 'Complaint deleted successfully',
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};

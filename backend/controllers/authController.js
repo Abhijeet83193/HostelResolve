@@ -143,6 +143,25 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
+// @desc    Get all users (Warden only)
+// @route   GET /api/auth/users
+// @access  Private/Warden
+exports.getUsers = async (req, res) => {
+    try {
+        const users = await User.find({}).select('-password');
+        res.json({
+            success: true,
+            count: users.length,
+            users,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 // Generate JWT
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {

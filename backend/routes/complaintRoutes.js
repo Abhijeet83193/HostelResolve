@@ -8,6 +8,7 @@ const {
     getComplaintStats,
     addComment,
     upvoteComplaint,
+    deleteComplaint,
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
@@ -26,6 +27,7 @@ router.post('/:id/upvote', upvoteComplaint);
 
 router.route('/:id')
     .get(getComplaintById)
-    .put(updateComplaint);
+    .put(updateComplaint)
+    .delete(deleteComplaint);
 
 module.exports = router;
