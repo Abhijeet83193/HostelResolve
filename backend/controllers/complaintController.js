@@ -1,4 +1,5 @@
 const Complaint = require('../models/Complaint');
+const { createNotification } = require('./notificationController');
 
 // @desc    Create new complaint
 // @route   POST /api/complaints
@@ -114,6 +115,9 @@ exports.updateComplaint = async (req, res) => {
             });
         }
 
+        const oldStatus = complaint.status;
+        const oldAssignedTo = complaint.assignedTo;
+
         // Role-based restrictions
         if (req.user.role === 'warden') {
             // Warden can update status and assignedTo
@@ -141,6 +145,30 @@ exports.updateComplaint = async (req, res) => {
         }
 
         const updatedComplaint = await complaint.save();
+
+        // --- Trigger Notifications ---
+
+        // 1. Status Change Notification
+        if (oldStatus !== updatedComplaint.status) {
+            await createNotification({
+                recipient: updatedComplaint.createdBy,
+                sender: req.user._id,
+                type: 'status_change',
+                complaint: updatedComplaint._id,
+                message: `Your complaint status has been updated to "${updatedComplaint.status}"`,
+            });
+        }
+
+        // 2. Assignment Notification
+        if (req.user.role === 'warden' && updatedComplaint.assignedTo && (!oldAssignedTo || oldAssignedTo.toString() !== updatedComplaint.assignedTo.toString())) {
+            await createNotification({
+                recipient: updatedComplaint.assignedTo,
+                sender: req.user._id,
+                type: 'assigned',
+                complaint: updatedComplaint._id,
+                message: `A new complaint titled "${updatedComplaint.title}" has been assigned to you`,
+            });
+        }
 
         res.json({
             success: true,
@@ -217,6 +245,17 @@ exports.addComment = async (req, res) => {
 
         complaint.comments.push(comment);
         await complaint.save();
+
+        // Trigger Notification to Complaint Creator (if someone else commented)
+        if (complaint.createdBy.toString() !== req.user._id.toString()) {
+            await createNotification({
+                recipient: complaint.createdBy,
+                sender: req.user._id,
+                type: 'new_comment',
+                complaint: complaint._id,
+                message: `${req.user.name} commented on your complaint: "${complaint.title}"`,
+            });
+        }
 
         const updatedComplaint = await Complaint.findById(req.params.id)
             .populate('comments.user', 'name role');
