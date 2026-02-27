@@ -18,6 +18,9 @@ const startServer = async () => {
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
 
+        // Routes
+        app.use('/api/auth', require('./routes/authRoutes'));
+
         // Test route
         app.get('/api', (req, res) => {
             res.json({
