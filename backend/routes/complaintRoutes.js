@@ -10,13 +10,14 @@ const {
     upvoteComplaint,
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/auth');
+const upload = require('../middleware/uploadMiddleware');
 
 // All routes are protected
 router.use(protect);
 
 router.route('/')
     .get(getComplaints)
-    .post(createComplaint);
+    .post(upload.array('images', 5), createComplaint);
 
 router.get('/stats', getComplaintStats);
 

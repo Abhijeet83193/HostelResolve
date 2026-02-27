@@ -7,6 +7,8 @@ exports.createComplaint = async (req, res) => {
     try {
         const { title, description, category, priority, hostel, room } = req.body;
 
+        const images = req.files ? req.files.map(file => file.path) : [];
+
         const complaint = await Complaint.create({
             title,
             description,
@@ -14,6 +16,7 @@ exports.createComplaint = async (req, res) => {
             priority,
             hostel,
             room,
+            images,
             createdBy: req.user._id,
         });
 
