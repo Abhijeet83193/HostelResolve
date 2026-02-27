@@ -21,6 +21,7 @@ const startServer = async () => {
         // Routes
         app.use('/api/auth', require('./routes/authRoutes'));
         app.use('/api/complaints', require('./routes/complaintRoutes'));
+        app.use('/api/notifications', require('./routes/notificationRoutes'));
 
         // Test route
         app.get('/api', (req, res) => {
