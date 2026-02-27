@@ -20,6 +20,7 @@ const startServer = async () => {
 
         // Routes
         app.use('/api/auth', require('./routes/authRoutes'));
+        app.use('/api/complaints', require('./routes/complaintRoutes'));
 
         // Test route
         app.get('/api', (req, res) => {
