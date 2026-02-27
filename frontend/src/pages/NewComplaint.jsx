@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { complaintService, CATEGORIES, PRIORITIES, HOSTELS } from '../services/api';
 import {
@@ -10,12 +10,15 @@ import {
     Upload,
     X,
     CheckCircle2,
+    Image as ImageIcon,
 } from 'lucide-react';
 import './NewComplaint.css';
 
 export default function NewComplaint() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const fileInputRef = useRef(null);
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -24,6 +27,9 @@ export default function NewComplaint() {
         hostel: user?.hostel || '',
         room: user?.room || '',
     });
+
+    const [images, setImages] = useState([]);
+    const [previews, setPreviews] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
@@ -32,9 +38,40 @@ export default function NewComplaint() {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files || e.dataTransfer?.files || []);
+        if (files.length + images.length > 5) {
+            setError('Maximum 5 images allowed');
+            return;
+        }
+
+        setError('');
+        const validFiles = files.filter(file => {
+            const isValid = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type);
+            const isSmall = file.size <= 5 * 1024 * 1024;
+            return isValid && isSmall;
+        });
+
+        if (validFiles.length !== files.length) {
+            setError('Please upload only JPG/PNG files under 5MB');
+        }
+
+        setImages(prev => [...prev, ...validFiles]);
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prev => [...prev, ...newPreviews]);
+    };
+
+    const removeImage = (index) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+        setPreviews(prev => {
+            URL.revokeObjectURL(prev[index]);
+            return prev.filter((_, i) => i !== index);
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const { title, description, category, hostel, room } = formData;
+        const { title, description, category, hostel, room, priority } = formData;
 
         if (!title || !description || !category || !hostel || !room) {
             setError('Please fill in all required fields');
@@ -49,13 +86,25 @@ export default function NewComplaint() {
             return;
         }
 
+        const data = new FormData();
+        data.append('title', title);
+        data.append('description', description);
+        data.append('category', category);
+        data.append('priority', priority);
+        data.append('hostel', hostel);
+        data.append('room', room);
+
+        images.forEach(image => {
+            data.append('images', image);
+        });
+
         setError('');
         setLoading(true);
         try {
-            const newComplaint = await complaintService.create(formData);
+            const newComplaint = await complaintService.create(data);
             setSuccess(true);
             setTimeout(() => {
-                navigate(`/complaints/${newComplaint.id}`);
+                navigate(`/complaints/${newComplaint._id || newComplaint.id}`);
             }, 1500);
         } catch (err) {
             setError(err.message || 'Failed to submit complaint');
@@ -208,14 +257,57 @@ export default function NewComplaint() {
                             </div>
                         </div>
 
-                        {/* Image Upload Placeholder */}
                         <div className="form-group">
                             <label className="form-label">Attachments (Optional)</label>
-                            <div className="upload-zone">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                multiple
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                            />
+                            <div
+                                className={`upload-zone ${images.length > 0 ? 'has-files' : ''}`}
+                                onClick={() => fileInputRef.current.click()}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    handleFileChange({ target: { files: e.dataTransfer.files } });
+                                }}
+                            >
                                 <Upload size={24} />
                                 <p>Drag & drop images or click to browse</p>
-                                <span>JPG, PNG up to 5MB each</span>
+                                <span>JPG, PNG up to 5MB each (Max 5)</span>
                             </div>
+
+                            {previews.length > 0 && (
+                                <div className="preview-grid">
+                                    <AnimatePresence>
+                                        {previews.map((url, idx) => (
+                                            <motion.div
+                                                key={url}
+                                                className="preview-item"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                            >
+                                                <img src={url} alt={`Preview ${idx + 1}`} />
+                                                <button
+                                                    type="button"
+                                                    className="remove-img"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeImage(idx);
+                                                    }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </motion.div>
+                                        ))}
+                                    </AnimatePresence>
+                                </div>
+                            )}
                         </div>
 
                         {/* Submit */}
