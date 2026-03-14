@@ -113,6 +113,11 @@ export default function Login() {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        <div className="form-group-footer">
+                            <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 500 }}>
+                                Forgot Password?
+                            </Link>
+                        </div>
                     </div>
 
                     <button

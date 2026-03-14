@@ -4,10 +4,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Complaints from './pages/Complaints';
 import NewComplaint from './pages/NewComplaint';
 import ComplaintDetail from './pages/ComplaintDetail';
+import EditComplaint from './pages/EditComplaint';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import './App.css';
@@ -59,6 +62,14 @@ function App() {
         path="/register"
         element={user ? <Navigate to="/dashboard" replace /> : <Register />}
       />
+      <Route
+        path="/forgot-password"
+        element={user ? <Navigate to="/dashboard" replace /> : <ForgotPassword />}
+      />
+      <Route
+        path="/reset-password/:token"
+        element={user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
+      />
 
       {/* Protected Routes */}
       <Route
@@ -97,6 +108,16 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <ComplaintDetail />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/complaints/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <EditComplaint />
             </AppLayout>
           </ProtectedRoute>
         }

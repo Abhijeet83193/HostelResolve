@@ -206,6 +206,13 @@ export default function Dashboard() {
                                         className="complaint-list-item"
                                     >
                                         <div className="complaint-priority-dot" style={{ background: getPriorityColor(complaint.priority) }} />
+
+                                        {complaint.images && complaint.images.length > 0 && (
+                                            <div className="complaint-list-img">
+                                                <img src={complaint.images[0]} alt="" />
+                                            </div>
+                                        )}
+
                                         <div className="complaint-list-content">
                                             <div className="complaint-list-top">
                                                 <span className="complaint-list-id">{complaint.id}</span>

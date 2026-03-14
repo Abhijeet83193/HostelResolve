@@ -223,21 +223,34 @@ export default function Complaints() {
                                     </span>
                                 </div>
 
-                                <h3 className="complaint-card-title">{complaint.title}</h3>
-                                <p className="complaint-card-desc">{complaint.description}</p>
+                                {complaint.images && complaint.images.length > 0 && (
+                                    <div className="complaint-card-image">
+                                        <img src={complaint.images[0]} alt={complaint.title} loading="lazy" />
+                                        {complaint.images.length > 1 && (
+                                            <div className="complaint-image-count">
+                                                +{complaint.images.length - 1} more
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
-                                <div className="complaint-card-tags">
-                                    <span className="complaint-tag">{complaint.category}</span>
-                                    <span
-                                        className="complaint-tag complaint-tag-priority"
-                                        style={{
-                                            color: getPriorityColor(complaint.priority),
-                                            borderColor: getPriorityColor(complaint.priority),
-                                            background: `${getPriorityColor(complaint.priority)}15`,
-                                        }}
-                                    >
-                                        {complaint.priority}
-                                    </span>
+                                <div className="complaint-card-content">
+                                    <h3 className="complaint-card-title">{complaint.title}</h3>
+                                    <p className="complaint-card-desc">{complaint.description}</p>
+
+                                    <div className="complaint-card-tags">
+                                        <span className="complaint-tag">{complaint.category}</span>
+                                        <span
+                                            className="complaint-tag complaint-tag-priority"
+                                            style={{
+                                                color: getPriorityColor(complaint.priority),
+                                                borderColor: getPriorityColor(complaint.priority),
+                                                background: `${getPriorityColor(complaint.priority)}15`,
+                                            }}
+                                        >
+                                            {complaint.priority}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="complaint-card-footer">

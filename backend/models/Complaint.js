@@ -59,6 +59,10 @@ const complaintSchema = new mongoose.Schema(
             type: [String],
             default: [],
         },
+        isEscalated: {
+            type: Boolean,
+            default: false,
+        },
         upvotes: {
             type: Number,
             default: 0,

@@ -134,6 +134,45 @@
     font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
+.complaint-card-image {
+    width: calc(100% + (var(--space-lg) * 2));
+    height: 160px;
+    margin: 0 calc(var(--space-lg) * -1) var(--space-md);
+    position: relative;
+    overflow: hidden;
+    background: var(--color-bg-tertiary);
+}
+
+.complaint-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.complaint-card:hover .complaint-card-image img {
+    transform: scale(1.05);
+}
+
+.complaint-image-count {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.complaint-card-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
 .complaint-card-title {
     font-size: 1.05rem;
     font-weight: 700;

@@ -27,7 +27,7 @@ router.post('/:id/upvote', upvoteComplaint);
 
 router.route('/:id')
     .get(getComplaintById)
-    .put(updateComplaint)
+    .put(upload.array('images', 5), updateComplaint)
     .delete(deleteComplaint);
 
 module.exports = router;

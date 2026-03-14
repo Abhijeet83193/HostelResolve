@@ -1,3 +1,4 @@
+// Server initialization
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -5,6 +6,8 @@ const connectDB = require('./config/db');
 
 // Load environment variables
 dotenv.config();
+
+const startEscalationCronJob = require('./utils/escalationCron');
 
 const startServer = async () => {
     try {
@@ -17,6 +20,9 @@ const startServer = async () => {
         app.use(cors());
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
+
+        // Start Escalation Cron Job
+        startEscalationCronJob();
 
         // Routes
         app.use('/api/auth', require('./routes/authRoutes'));

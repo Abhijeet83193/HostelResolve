@@ -142,6 +142,22 @@ exports.updateComplaint = async (req, res) => {
             complaint.description = req.body.description || complaint.description;
             complaint.category = req.body.category || complaint.category;
             complaint.priority = req.body.priority || complaint.priority;
+
+            // Handle Images
+            // If existingImages is provided, it means we want to keep those.
+            // If not, we might be replacing or keeping all.
+            if (req.body.existingImages) {
+                const keepImages = Array.isArray(req.body.existingImages)
+                    ? req.body.existingImages
+                    : [req.body.existingImages];
+                complaint.images = keepImages;
+            }
+
+            // Append new images if any
+            if (req.files && req.files.length > 0) {
+                const newImageUrls = req.files.map(file => file.path);
+                complaint.images = [...complaint.images, ...newImageUrls];
+            }
         }
 
         const updatedComplaint = await complaint.save();

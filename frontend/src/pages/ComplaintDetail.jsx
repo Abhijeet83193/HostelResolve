@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { complaintService } from '../services/api';
+import { complaintService, STATUSES } from '../services/api';
 import {
     ArrowLeft,
     Clock,
@@ -50,6 +50,32 @@ export default function ComplaintDetail() {
             setUpvoted(true);
         } catch (err) {
             console.error('Upvote failed:', err);
+        }
+    };
+
+    const handleStatusChange = async (newStatus) => {
+        try {
+            setLoading(true);
+            const updated = await complaintService.update(id, { status: newStatus });
+            setComplaint(prev => ({ ...prev, status: updated.status }));
+        } catch (err) {
+            console.error('Status update failed:', err);
+            alert(err.message || 'Failed to update status');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to delete this complaint?')) return;
+        try {
+            setLoading(true);
+            await complaintService.delete(id);
+            navigate('/complaints');
+        } catch (err) {
+            console.error('Delete failed:', err);
+            setLoading(false);
+            alert(err.message || 'Failed to delete complaint');
         }
     };
 
@@ -148,10 +174,31 @@ export default function ComplaintDetail() {
                         {/* Header */}
                         <div className="detail-header">
                             <div className="detail-header-top">
-                                <span className="detail-id">{complaint.id}</span>
-                                <span className={`badge ${getStatusBadge(complaint.status)}`}>
-                                    {complaint.status}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <span className="detail-id">{complaint.id}</span>
+                                    <span className={`badge ${getStatusBadge(complaint.status)}`}>
+                                        {complaint.status}
+                                    </span>
+                                </div>
+                                <div className="detail-actions">
+                                    {(user._id === complaint.createdBy?._id || user.id === complaint.createdBy?.id) && complaint.status === 'Pending' && (
+                                        <button
+                                            className="btn btn-secondary btn-sm"
+                                            onClick={() => navigate(`/complaints/${id}/edit`)}
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                    {(user.role === 'warden' || (user._id === complaint.createdBy?._id && complaint.status === 'Pending')) && (
+                                        <button
+                                            className="btn btn-danger btn-sm"
+                                            onClick={handleDelete}
+                                            disabled={loading}
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <h1 className="detail-title">{complaint.title}</h1>
                             <div className="detail-meta">
@@ -171,6 +218,25 @@ export default function ComplaintDetail() {
                             <h3 className="detail-section-title">Description</h3>
                             <p className="detail-description">{complaint.description}</p>
                         </div>
+
+                        {/* Attachments */}
+                        {complaint.images && complaint.images.length > 0 && (
+                            <div className="detail-section">
+                                <h3 className="detail-section-title">Attachments ({complaint.images.length})</h3>
+                                <div className="detail-images-gallery">
+                                    {complaint.images.map((img, idx) => (
+                                        <motion.div
+                                            key={idx}
+                                            className="detail-gallery-item"
+                                            whileHover={{ scale: 1.02 }}
+                                            onClick={() => window.open(img, '_blank')}
+                                        >
+                                            <img src={img} alt={`Attachment ${idx + 1}`} loading="lazy" />
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Comments / Timeline */}
                         <div className="detail-section">
@@ -240,6 +306,27 @@ export default function ComplaintDetail() {
 
                     {/* Sidebar */}
                     <div className="detail-sidebar">
+                        {/* Warden Controls: Status Management */}
+                        {user.role === 'warden' && (
+                            <div className="detail-sidebar-card">
+                                <h4 className="detail-sidebar-title">Status Management</h4>
+                                <div className="detail-info-grid">
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <select
+                                            className="form-select"
+                                            value={complaint.status}
+                                            onChange={(e) => handleStatusChange(e.target.value)}
+                                            disabled={loading}
+                                        >
+                                            {STATUSES.map(s => (
+                                                <option key={s} value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Upvote */}
                         <div className="detail-sidebar-card">
                             <button

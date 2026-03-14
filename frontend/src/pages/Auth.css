@@ -130,6 +130,12 @@
     gap: 1.25rem;
 }
 
+.form-group-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
 .auth-form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -185,6 +191,56 @@
 
 .auth-link:hover {
     color: #c084fc;
+}
+
+/* ---- Success State ---- */
+.auth-success-state {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.success-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: #22c55e;
+}
+
+.auth-success-state h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.auth-success-state p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.auth-hint {
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.auth-back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    transition: color 0.2s;
+}
+
+.auth-back-link:hover {
+    color: var(--color-primary);
 }
 
 /* ---- Demo ---- */
