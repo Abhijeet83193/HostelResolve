@@ -1,0 +1,59 @@
+[
+  {
+    "_id": "69b51e92f8e39382d7abe851",
+    "title": "new one",
+    "description": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "category": "Electrical",
+    "priority": "Medium",
+    "status": "Pending",
+    "hostel": "Hostel A",
+    "room": "345",
+    "createdBy": "69b4fc90381cefde7d57bd7d",
+    "assignedTo": null,
+    "images": [
+      "https://res.cloudinary.com/dcuhodoxx/image/upload/v1773477522/hostel_resolve/complaints/bv9hr7jerhkx5wnxgqqd.jpg"
+    ],
+    "isEscalated": true,
+    "upvotes": 0,
+    "upvotedBy": [],
+    "comments": [
+      {
+        "user": "69b4fc90381cefde7d57bd7d",
+        "text": "⚠️ SYSTEM: This complaint has been automatically escalated to higher authorities due to inactivity/delays.",
+        "createdAt": "2026-03-14T08:44:02.294Z",
+        "_id": "69b51fd28705fccdd87c48e6"
+      },
+      {
+        "user": "69b4fc90381cefde7d57bd7d",
+        "text": "⚠️ SYSTEM: This complaint has been automatically escalated to higher authorities due to inactivity/delays.",
+        "createdAt": "2026-03-14T08:44:02.301Z",
+        "_id": "69b51fd2f8e39382d7abe86a"
+      }
+    ],
+    "createdAt": "2026-03-14T08:38:42.181Z",
+    "updatedAt": "2026-03-14T08:44:02.303Z",
+    "__v": 2
+  },
+  {
+    "isEscalated": false,
+    "_id": "69a9562ffb9a453b61a348a8",
+    "title": "broke tables",
+    "description": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+    "category": "Electrical",
+    "priority": "Low",
+    "status": "Resolved",
+    "hostel": "Hostel A",
+    "room": "234",
+    "createdBy": "69a955effb9a453b61a34899",
+    "assignedTo": null,
+    "images": [
+      "https://res.cloudinary.com/dcuhodoxx/image/upload/v1772705328/hostel_resolve/complaints/aicms9rhyykyg3lqobdn.jpg"
+    ],
+    "upvotes": 0,
+    "upvotedBy": [],
+    "comments": [],
+    "createdAt": "2026-03-05T10:08:47.587Z",
+    "updatedAt": "2026-03-14T06:33:25.022Z",
+    "__v": 0
+  }
+]

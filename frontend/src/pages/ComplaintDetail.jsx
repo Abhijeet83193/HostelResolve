@@ -14,6 +14,8 @@ import {
     User,
     Calendar,
     MessageSquare,
+    Star,
+    RefreshCcw,
 } from 'lucide-react';
 import './ComplaintDetail.css';
 
@@ -26,6 +28,12 @@ export default function ComplaintDetail() {
     const [comment, setComment] = useState('');
     const [commenting, setCommenting] = useState(false);
     const [upvoted, setUpvoted] = useState(false);
+    const [feedbackRating, setFeedbackRating] = useState(0);
+    const [feedbackComment, setFeedbackComment] = useState('');
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [resolvedFiles, setResolvedFiles] = useState([]);
+    const [tempResolvedImages, setTempResolvedImages] = useState([]);
 
     useEffect(() => {
         loadComplaint();
@@ -54,16 +62,61 @@ export default function ComplaintDetail() {
     };
 
     const handleStatusChange = async (newStatus) => {
+        if (newStatus === 'Resolved' && resolvedFiles.length === 0) {
+            // If they haven't uploaded images yet, we might want to confirm or just proceed?
+            // The requirement says "option aa jaye", so let's allow it but maybe warn if empty?
+            // Actually, let's just use the current state.
+        }
+
         try {
-            setLoading(true);
-            const updated = await complaintService.update(id, { status: newStatus });
-            setComplaint(prev => ({ ...prev, status: updated.status }));
+            setUpdatingStatus(true);
+            
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            
+            if (newStatus === 'Resolved') {
+                resolvedFiles.forEach(file => {
+                    formData.append('resolvedImages', file);
+                });
+            }
+
+            const updated = await complaintService.update(id, formData);
+            setComplaint(prev => ({ 
+                ...prev, 
+                status: updated.status,
+                resolvedImages: updated.resolvedImages 
+            }));
+            
+            if (newStatus === 'Resolved') {
+                setResolvedFiles([]);
+                setTempResolvedImages([]);
+            }
+            
+            alert(`Status updated to ${newStatus}`);
         } catch (err) {
             console.error('Status update failed:', err);
             alert(err.message || 'Failed to update status');
         } finally {
-            setLoading(false);
+            setUpdatingStatus(false);
         }
+    };
+
+    const handleResolvedFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + resolvedFiles.length > 5) {
+            return alert('You can upload up to 5 images only');
+        }
+
+        setResolvedFiles(prev => [...prev, ...files]);
+        
+        // For preview
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setTempResolvedImages(prev => [...prev, ...newPreviews]);
+    };
+
+    const removeFile = (index) => {
+        setResolvedFiles(prev => prev.filter((_, i) => i !== index));
+        setTempResolvedImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleDelete = async () => {
@@ -94,6 +147,39 @@ export default function ComplaintDetail() {
             console.error('Comment failed:', err);
         } finally {
             setCommenting(false);
+        }
+    };
+
+    const handleFeedbackSubmit = async (e) => {
+        e.preventDefault();
+        if (feedbackRating === 0) return alert('Please select a rating');
+        setSubmittingFeedback(true);
+        try {
+            const updated = await complaintService.submitFeedback(id, {
+                rating: feedbackRating,
+                comment: feedbackComment,
+            });
+            setComplaint(updated);
+        } catch (err) {
+            console.error('Feedback submission failed:', err);
+            alert(err.message || 'Failed to submit feedback');
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
+
+    const handleReopen = async () => {
+        if (!window.confirm('Are you sure you want to re-open this complaint?')) return;
+        try {
+            setLoading(true);
+            const updated = await complaintService.reopen(id);
+            setComplaint(updated);
+            alert('Complaint re-opened successfully');
+        } catch (err) {
+            console.error('Re-open failed:', err);
+            alert(err.message || 'Failed to re-open complaint');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -219,24 +305,118 @@ export default function ComplaintDetail() {
                             <p className="detail-description">{complaint.description}</p>
                         </div>
 
-                        {/* Attachments */}
-                        {complaint.images && complaint.images.length > 0 && (
-                            <div className="detail-section">
-                                <h3 className="detail-section-title">Attachments ({complaint.images.length})</h3>
-                                <div className="detail-images-gallery">
-                                    {complaint.images.map((img, idx) => (
-                                        <motion.div
-                                            key={idx}
-                                            className="detail-gallery-item"
-                                            whileHover={{ scale: 1.02 }}
-                                            onClick={() => window.open(img, '_blank')}
-                                        >
-                                            <img src={img} alt={`Attachment ${idx + 1}`} loading="lazy" />
-                                        </motion.div>
-                                    ))}
-                                </div>
+                        {/* Feedback Section (only if Resolved) */}
+                        {complaint.status === 'Resolved' && (complaint.feedback?.rating || ((user._id === complaint.createdBy?._id || user.id === complaint.createdBy?.id) && user.role === 'student')) && (
+                            <div className="detail-section detail-feedback-section">
+                                <h3 className="detail-section-title">
+                                    <Star size={18} />
+                                    {complaint.feedback?.rating ? 'Resolution Feedback' : 'How was the resolution?'}
+                                </h3>
+
+                                {complaint.feedback?.rating ? (
+                                    <div className="feedback-display">
+                                        <div className="feedback-rating">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star
+                                                    key={i}
+                                                    size={20}
+                                                    fill={i < complaint.feedback.rating ? 'currentColor' : 'none'}
+                                                />
+                                            ))}
+                                        </div>
+                                        {complaint.feedback.comment && (
+                                            <p className="feedback-comment">"{complaint.feedback.comment}"</p>
+                                        )}
+                                        <div className="reopen-prompt">
+                                            <span className="reopen-text">Still not satisfied?</span>
+                                            {(user._id === complaint.createdBy?._id || user.id === complaint.createdBy?.id) && (
+                                                <button className="btn btn-ghost btn-sm" onClick={handleReopen}>
+                                                    <RefreshCcw size={14} /> Re-open Complaint
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleFeedbackSubmit}>
+                                        <div className="rating-input">
+                                            {[1, 2, 3, 4, 5].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    className={`star-btn ${feedbackRating >= num ? 'active' : ''}`}
+                                                    onClick={() => setFeedbackRating(num)}
+                                                >
+                                                    <Star
+                                                        size={24}
+                                                        fill={feedbackRating >= num ? 'currentColor' : 'none'}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="form-group">
+                                            <textarea
+                                                className="form-input"
+                                                placeholder="Add a comment about the resolution (optional)..."
+                                                value={feedbackComment}
+                                                onChange={(e) => setFeedbackComment(e.target.value)}
+                                                rows="2"
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
+                                            <button
+                                                type="submit"
+                                                className="btn btn-primary"
+                                                disabled={feedbackRating === 0 || submittingFeedback}
+                                            >
+                                                {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                                            </button>
+                                            <button type="button" className="btn btn-ghost btn-sm" onClick={handleReopen}>
+                                                <RefreshCcw size={14} /> Re-open Instead
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         )}
+
+                        {/* Attachments (Before & After) */}
+                        <div className="detail-images-container">
+                            {complaint.images && complaint.images.length > 0 && (
+                                <div className="detail-section">
+                                    <h3 className="detail-section-title">Before Work ({complaint.images.length})</h3>
+                                    <div className="detail-images-gallery">
+                                        {complaint.images.map((img, idx) => (
+                                            <motion.div
+                                                key={idx}
+                                                className="detail-gallery-item"
+                                                whileHover={{ scale: 1.02 }}
+                                                onClick={() => window.open(img, '_blank')}
+                                            >
+                                                <img src={img} alt={`Before ${idx + 1}`} loading="lazy" />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {complaint.resolvedImages && complaint.resolvedImages.length > 0 && (
+                                <div className="detail-section after-resolution">
+                                    <h3 className="detail-section-title">After Work - Proof ({complaint.resolvedImages.length})</h3>
+                                    <div className="detail-images-gallery-resolved">
+                                        {complaint.resolvedImages.map((img, idx) => (
+                                            <motion.div
+                                                key={idx}
+                                                className="detail-gallery-item resolved-item"
+                                                whileHover={{ scale: 1.02 }}
+                                                onClick={() => window.open(img, '_blank')}
+                                            >
+                                                <img src={img} alt={`After ${idx + 1}`} loading="lazy" />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Comments / Timeline */}
                         <div className="detail-section">
@@ -311,18 +491,62 @@ export default function ComplaintDetail() {
                             <div className="detail-sidebar-card">
                                 <h4 className="detail-sidebar-title">Status Management</h4>
                                 <div className="detail-info-grid">
-                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <div className="form-group">
+                                        <label className="form-label">Update Status</label>
                                         <select
                                             className="form-select"
                                             value={complaint.status}
                                             onChange={(e) => handleStatusChange(e.target.value)}
-                                            disabled={loading}
+                                            disabled={updatingStatus}
                                         >
                                             {STATUSES.map(s => (
                                                 <option key={s} value={s}>{s}</option>
                                             ))}
                                         </select>
                                     </div>
+
+                                    {complaint.status !== 'Resolved' && (
+                                        <div className="resolved-proof-upload">
+                                            <label className="form-label">Resolution Proof (Optional)</label>
+                                            <p className="field-hint">Upload images to show completed work</p>
+                                            <input
+                                                type="file"
+                                                id="resolved-images"
+                                                multiple
+                                                accept="image/*"
+                                                className="hidden-input"
+                                                onChange={handleResolvedFileChange}
+                                            />
+                                            <label htmlFor="resolved-images" className="upload-btn-outline">
+                                                <Send size={14} /> Select Images
+                                            </label>
+
+                                            {tempResolvedImages.length > 0 && (
+                                                <div className="temp-previews">
+                                                    {tempResolvedImages.map((src, i) => (
+                                                        <div key={i} className="temp-preview-item">
+                                                            <img src={src} alt="Preview" />
+                                                            <button 
+                                                                className="remove-temp-img"
+                                                                onClick={() => removeFile(i)}
+                                                            >
+                                                                &times;
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <button 
+                                                className="btn btn-primary btn-block" 
+                                                style={{ marginTop: '1rem' }}
+                                                onClick={() => handleStatusChange('Resolved')}
+                                                disabled={updatingStatus}
+                                            >
+                                                {updatingStatus ? 'Updating...' : 'Mark as Resolved'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

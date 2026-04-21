@@ -13,6 +13,7 @@ import {
     PlusCircle,
     ArrowRight,
     ChevronUp,
+    Star,
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -261,6 +262,13 @@ export default function Dashboard() {
                         <div>
                             <span className="quick-stat-value">{stats?.resolved || 0}</span>
                             <span className="quick-stat-label">Issues Fixed</span>
+                        </div>
+                    </div>
+                    <div className="quick-stat-card">
+                        <Star size={20} style={{ color: '#f59e0b' }} />
+                        <div>
+                            <span className="quick-stat-value">{stats?.averageRating || '0.0'}/5</span>
+                            <span className="quick-stat-label">Satisfaction</span>
                         </div>
                     </div>
                 </motion.div>

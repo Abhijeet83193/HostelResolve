@@ -149,6 +149,21 @@ export const complaintService = {
         const data = await fetchWithAuth('/complaints/stats');
         return data.data;
     },
+
+    async submitFeedback(id, feedback) {
+        const data = await fetchWithAuth(`/complaints/${id}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify(feedback),
+        });
+        return data.data;
+    },
+
+    async reopen(id) {
+        const data = await fetchWithAuth(`/complaints/${id}/reopen`, {
+            method: 'POST',
+        });
+        return data.data;
+    },
 };
 
 // ---- Categories & Constants ----

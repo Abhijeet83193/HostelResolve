@@ -9,6 +9,8 @@ const {
     addComment,
     upvoteComplaint,
     deleteComplaint,
+    submitFeedback,
+    reopenComplaint,
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/auth');
 const upload = require('../middleware/uploadMiddleware');
@@ -24,10 +26,12 @@ router.get('/stats', getComplaintStats);
 
 router.post('/:id/comments', addComment);
 router.post('/:id/upvote', upvoteComplaint);
+router.post('/:id/feedback', submitFeedback);
+router.post('/:id/reopen', reopenComplaint);
 
 router.route('/:id')
     .get(getComplaintById)
-    .put(upload.array('images', 5), updateComplaint)
+    .put(upload.fields([{ name: 'images', maxCount: 5 }, { name: 'resolvedImages', maxCount: 5 }]), updateComplaint)
     .delete(deleteComplaint);
 
 module.exports = router;

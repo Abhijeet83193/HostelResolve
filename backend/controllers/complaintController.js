@@ -123,6 +123,19 @@ exports.updateComplaint = async (req, res) => {
             // Warden can update status and assignedTo
             complaint.status = req.body.status || complaint.status;
             complaint.assignedTo = req.body.assignedTo || complaint.assignedTo;
+
+            // Handle resolvedImages if status is being set to Resolved or by warden
+            if (req.body.existingResolvedImages) {
+                const keepResolvedImages = Array.isArray(req.body.existingResolvedImages)
+                    ? req.body.existingResolvedImages
+                    : [req.body.existingResolvedImages];
+                complaint.resolvedImages = keepResolvedImages;
+            }
+
+            if (req.files && req.files.resolvedImages) {
+                const newResolvedImageUrls = req.files.resolvedImages.map(file => file.path);
+                complaint.resolvedImages = [...complaint.resolvedImages, ...newResolvedImageUrls];
+            }
         } else {
             // Student can only update their own complaint it it's still pending
             if (complaint.createdBy.toString() !== req.user._id.toString()) {
@@ -144,8 +157,6 @@ exports.updateComplaint = async (req, res) => {
             complaint.priority = req.body.priority || complaint.priority;
 
             // Handle Images
-            // If existingImages is provided, it means we want to keep those.
-            // If not, we might be replacing or keeping all.
             if (req.body.existingImages) {
                 const keepImages = Array.isArray(req.body.existingImages)
                     ? req.body.existingImages
@@ -153,9 +164,9 @@ exports.updateComplaint = async (req, res) => {
                 complaint.images = keepImages;
             }
 
-            // Append new images if any
-            if (req.files && req.files.length > 0) {
-                const newImageUrls = req.files.map(file => file.path);
+            // Append new images if any (using upload.fields)
+            if (req.files && req.files.images) {
+                const newImageUrls = req.files.images.map(file => file.path);
                 complaint.images = [...complaint.images, ...newImageUrls];
             }
         }
@@ -227,6 +238,26 @@ exports.getComplaintStats = async (req, res) => {
             if (item._id === 'Resolved') formattedStats.resolved = item.count;
             if (item._id === 'Rejected') formattedStats.rejected = item.count;
         });
+
+        // Get average rating for resolved complaints
+        const ratingStats = await Complaint.aggregate([
+            {
+                $match: {
+                    status: 'Resolved',
+                    'feedback.rating': { $exists: true },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$feedback.rating' },
+                    feedbackCount: { $sum: 1 },
+                },
+            },
+        ]);
+
+        formattedStats.averageRating = ratingStats.length > 0 ? ratingStats[0].averageRating.toFixed(1) : 0;
+        formattedStats.feedbackCount = ratingStats.length > 0 ? ratingStats[0].feedbackCount : 0;
 
         res.json({
             success: true,
@@ -364,6 +395,137 @@ exports.deleteComplaint = async (req, res) => {
         res.json({
             success: true,
             message: 'Complaint deleted successfully',
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+// @desc    Submit feedback for resolved complaint
+// @route   POST /api/complaints/:id/feedback
+// @access  Private
+exports.submitFeedback = async (req, res) => {
+    try {
+        const { rating, comment } = req.body;
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Only creator can give feedback
+        if (complaint.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to give feedback on this complaint',
+            });
+        }
+
+        // Only students can give feedback
+        if (req.user.role !== 'student') {
+            return res.status(403).json({
+                success: false,
+                message: 'Only students are authorized to provide feedback',
+            });
+        }
+
+        // Can only give feedback if status is Resolved
+        if (complaint.status !== 'Resolved') {
+            return res.status(400).json({
+                success: false,
+                message: 'Feedback can only be provided for resolved complaints',
+            });
+        }
+
+        complaint.feedback = {
+            rating: Number(rating),
+            comment,
+            givenAt: new Date(),
+        };
+
+        await complaint.save();
+
+        // Notify assigned staff (if any)
+        if (complaint.assignedTo) {
+            await createNotification({
+                recipient: complaint.assignedTo,
+                sender: req.user._id,
+                type: 'feedback_received',
+                complaint: complaint._id,
+                message: `You received a ${rating}-star rating for complaint: "${complaint.title}"`,
+            });
+        }
+
+        res.json({
+            success: true,
+            data: complaint,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// @desc    Re-open resolved complaint
+// @route   POST /api/complaints/:id/reopen
+// @access  Private
+exports.reopenComplaint = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Only creator can re-open
+        if (complaint.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to re-open this complaint',
+            });
+        }
+
+        // Can only re-open if status is Resolved
+        if (complaint.status !== 'Resolved') {
+            return res.status(400).json({
+                success: false,
+                message: 'Only resolved complaints can be re-opened',
+            });
+        }
+
+        complaint.status = 'In Progress';
+        // Optionally add a comment about why it was re-opened
+        complaint.comments.push({
+            user: req.user._id,
+            text: 'Complaint re-opened by student due to dissatisfaction with resolution.',
+        });
+
+        await complaint.save();
+
+        // Notify assigned staff (if any)
+        if (complaint.assignedTo) {
+            await createNotification({
+                recipient: complaint.assignedTo,
+                sender: req.user._id,
+                type: 'status_change',
+                complaint: complaint._id,
+                message: `Complaint titled "${complaint.title}" has been re-opened by the student.`,
+            });
+        }
+
+        res.json({
+            success: true,
+            data: complaint,
         });
     } catch (error) {
         res.status(500).json({

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import { complaintService, CATEGORIES, PRIORITIES, STATUSES } from '../services/api';
 import {
     Search,
@@ -10,10 +11,12 @@ import {
     SlidersHorizontal,
     X,
     AlertTriangle,
+    Star,
 } from 'lucide-react';
 import './Complaints.css';
 
 export default function Complaints() {
+    const { user } = useAuth();
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -260,6 +263,21 @@ export default function Complaints() {
                                         <span>{formatDate(complaint.createdAt)}</span>
                                     </div>
                                     <div className="complaint-card-upvotes">
+                                        {complaint.status === 'Resolved' && (
+                                            <>
+                                                {complaint.feedback?.rating ? (
+                                                    <div className="complaint-rating" title={`${complaint.feedback.rating}/5 stars`}>
+                                                        <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                                                        <span>{complaint.feedback.rating}</span>
+                                                    </div>
+                                                ) : (user._id === complaint.createdBy?._id || user.id === complaint.createdBy?.id) ? (
+                                                    <div className="complaint-needs-feedback">
+                                                        Needs Feedback
+                                                    </div>
+                                                ) : null}
+                                                <span className="footer-separator">•</span>
+                                            </>
+                                        )}
                                         <ChevronUp size={14} />
                                         {complaint.upvotes}
                                     </div>

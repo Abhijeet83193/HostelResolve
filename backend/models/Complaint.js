@@ -59,6 +59,10 @@ const complaintSchema = new mongoose.Schema(
             type: [String],
             default: [],
         },
+        resolvedImages: {
+            type: [String],
+            default: [],
+        },
         isEscalated: {
             type: Boolean,
             default: false,
@@ -90,6 +94,11 @@ const complaintSchema = new mongoose.Schema(
                 },
             },
         ],
+        feedback: {
+            rating: { type: Number, min: 1, max: 5 },
+            comment: { type: String },
+            givenAt: { type: Date }
+        },
     },
     {
         timestamps: true,
