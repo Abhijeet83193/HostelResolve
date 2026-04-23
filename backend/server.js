@@ -12,7 +12,7 @@ const startServer = async () => {
         // Connect to MongoDB
         await connectDB();
 
-const app = express();
+        const app = express();
 
         // Middleware
         const corsOptions = {
@@ -41,6 +41,10 @@ const app = express();
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
+    } catch (error) {
+        console.error(`Failed to start server: ${error.message}`);
+        process.exit(1);
+    }
 };
 
 startServer();
