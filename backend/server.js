@@ -19,10 +19,10 @@ const startServer = async () => {
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
 
-        // Debug middleware to see what requests come in
-        app.use((req, res, next) => {
-            console.log(`${req.method} ${req.path}`);
-            next();
+        // DIRECT TEST ROUTE - bypass routes folder completely
+        app.post('/api/auth/login-direct', (req, res) => {
+            console.log('Direct login route hit!');
+            res.json({ success: true, message: 'Direct route works' });
         });
 
         console.log('Loading routes...');
