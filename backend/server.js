@@ -23,10 +23,15 @@ const startServer = async () => {
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
 
-        // Routes
+        const PORT = process.env.PORT || 5000;
+        
+        console.log('Loading routes...');
         app.use('/api/auth', require('./routes/authRoutes'));
+        console.log('Auth routes loaded');
         app.use('/api/complaints', require('./routes/complaintRoutes'));
+        console.log('Complaint routes loaded');
         app.use('/api/notifications', require('./routes/notificationRoutes'));
+        console.log('Notification routes loaded');
 
         // Test route
         app.get('/api', (req, res) => {
