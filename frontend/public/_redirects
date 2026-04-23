@@ -1,2 +1,2 @@
-# Redirect all requests to index.html
+# Redirect all routes to index.html for SPA
 /*    /index.html   200

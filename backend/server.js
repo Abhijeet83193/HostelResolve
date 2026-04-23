@@ -19,15 +19,36 @@ const startServer = async () => {
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
 
+        // Debug middleware to see what requests come in
+        app.use((req, res, next) => {
+            console.log(`${req.method} ${req.path}`);
+            next();
+        });
+
         console.log('Loading routes...');
-        app.use('/api/auth', require('./routes/authRoutes'));
-        console.log('Auth routes loaded');
-        app.use('/api/complaints', require('./routes/complaintRoutes'));
-        console.log('Complaint routes loaded');
-        app.use('/api/notifications', require('./routes/notificationRoutes'));
-        console.log('Notification routes loaded');
+        const authRoutes = require('./routes/authRoutes');
+        console.log('Auth routes module loaded:', !!authRoutes);
+        app.use('/api/auth', authRoutes);
+        console.log('Auth routes mounted');
+
+        const complaintRoutes = require('./routes/complaintRoutes');
+        console.log('Complaint routes module loaded:', !!complaintRoutes);
+        app.use('/api/complaints', complaintRoutes);
+        console.log('Complaint routes mounted');
+
+        const notificationRoutes = require('./routes/notificationRoutes');
+        console.log('Notification routes module loaded:', !!notificationRoutes);
+        app.use('/api/notifications', notificationRoutes);
+        console.log('Notification routes mounted');
+
+        // Test route to verify mounting works
+        app.get('/api/test', (req, res) => {
+            console.log('Test route hit');
+            res.json({ message: 'Test route works' });
+        });
 
         app.get('/api', (req, res) => {
+            console.log('API root hit');
             res.json({
                 message: 'HostelResolve API is running 🚀',
                 version: '1.0.0',
