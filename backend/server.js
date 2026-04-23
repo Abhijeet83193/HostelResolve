@@ -7,8 +7,6 @@ const connectDB = require('./config/db');
 // Load environment variables
 dotenv.config();
 
-const startEscalationCronJob = require('./utils/escalationCron');
-
 const startServer = async () => {
     try {
         // Connect to MongoDB
@@ -16,13 +14,16 @@ const startServer = async () => {
 
         const app = express();
 
-        // Middleware
-        app.use(cors());
-        app.use(express.json());
+// Middleware
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://hostelresolve-frontend.onrender.com', 'http://localhost:5173']
+        : ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+};
+app.use(cors(corsOptions));
+app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
-
-        // Start Escalation Cron Job
-        startEscalationCronJob();
 
         // Routes
         app.use('/api/auth', require('./routes/authRoutes'));
@@ -38,6 +39,17 @@ const startServer = async () => {
         });
 
         const PORT = process.env.PORT || 5000;
+        
+        // Serve static files in production
+        if (process.env.NODE_ENV === 'production') {
+            const path = require('path');
+            app.use(express.static(path.join(__dirname, '../frontend/dist')));
+            
+            app.get('*', (req, res) => {
+                res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+            });
+        }
+        
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
