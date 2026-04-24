@@ -4,6 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run start:prod",
+    "start:prod": "set NODE_ENV=production&& npm start --prefix backend",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

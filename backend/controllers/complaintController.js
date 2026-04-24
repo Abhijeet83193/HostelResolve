@@ -45,6 +45,9 @@ exports.getComplaints = async (req, res) => {
         if (status && status !== 'all') query.status = status;
         if (category && category !== 'all') query.category = category;
         if (priority && priority !== 'all') query.priority = priority;
+        if (req.query.myComplaints === 'true') {
+            query.createdBy = req.user._id;
+        }
 
         // Search in title or description
         if (search) {
@@ -214,7 +217,13 @@ exports.updateComplaint = async (req, res) => {
 // @access  Private
 exports.getComplaintStats = async (req, res) => {
     try {
+        let matchStage = {};
+        if (req.user.role === 'student') {
+            matchStage.createdBy = req.user._id;
+        }
+
         const stats = await Complaint.aggregate([
+            { $match: matchStage },
             {
                 $group: {
                     _id: '$status',
@@ -243,6 +252,7 @@ exports.getComplaintStats = async (req, res) => {
         const ratingStats = await Complaint.aggregate([
             {
                 $match: {
+                    ...matchStage,
                     status: 'Resolved',
                     'feedback.rating': { $exists: true },
                 },

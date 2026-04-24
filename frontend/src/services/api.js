@@ -86,6 +86,7 @@ export const complaintService = {
         if (filters.category && filters.category !== 'all') params.append('category', filters.category);
         if (filters.priority && filters.priority !== 'all') params.append('priority', filters.priority);
         if (filters.search) params.append('search', filters.search);
+        if (filters.myComplaints) params.append('myComplaints', 'true');
 
         const data = await fetchWithAuth(`/complaints?${params.toString()}`);
 

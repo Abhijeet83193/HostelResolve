@@ -12,7 +12,7 @@ const startServer = async () => {
         const app = express();
 
         const corsOptions = {
-            origin: ['https://hostelresolve-frontend.onrender.com'],
+            origin: ['https://hostelresolve-frontend.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
             credentials: true,
         };
         app.use(cors(corsOptions));

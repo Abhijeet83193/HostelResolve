@@ -53,8 +53,11 @@ export default function ComplaintDetail() {
     const handleUpvote = async () => {
         if (upvoted) return;
         try {
-            const updated = await complaintService.upvote(id);
-            setComplaint(updated);
+            const response = await complaintService.upvote(id);
+            setComplaint(prev => ({
+                ...prev,
+                upvotes: response.upvotes
+            }));
             setUpvoted(true);
         } catch (err) {
             console.error('Upvote failed:', err);

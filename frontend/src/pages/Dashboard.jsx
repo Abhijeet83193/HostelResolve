@@ -31,7 +31,7 @@ export default function Dashboard() {
         try {
             const [statsData, complaints] = await Promise.all([
                 complaintService.getStats(),
-                complaintService.getAll(),
+                complaintService.getAll(user?.role === 'student' ? { myComplaints: true } : {}),
             ]);
             setStats(statsData);
             setRecentComplaints(complaints.slice(0, 5));
@@ -175,8 +175,12 @@ export default function Dashboard() {
                 <motion.div className="dashboard-section" variants={itemVariants}>
                     <div className="dashboard-section-header">
                         <div>
-                            <h2 className="dashboard-section-title">Recent Complaints</h2>
-                            <p className="dashboard-section-subtitle">Your latest filed complaints</p>
+                            <h2 className="dashboard-section-title">
+                                {user?.role === 'warden' ? 'Recent Complaints' : 'My Recent Complaints'}
+                            </h2>
+                            <p className="dashboard-section-subtitle">
+                                {user?.role === 'warden' ? 'Latest complaints filed by students' : 'Your latest filed complaints'}
+                            </p>
                         </div>
                         <Link to="/complaints" className="btn btn-ghost">
                             View All <ArrowRight size={16} />

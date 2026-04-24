@@ -386,4 +386,33 @@
 .reopen-text {
     font-size: 0.85rem;
     color: var(--color-text-muted);
-}
+}
+
+/* ---- Upload Button ---- */
+.upload-btn-outline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    width: 100%;
+}
+
+.upload-btn-outline:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: var(--color-accent-light);
+}
+
+.hidden-input {
+    display: none;
+}
+
