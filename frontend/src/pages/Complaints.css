@@ -245,6 +245,10 @@
     font-weight: 600;
 }
 
+.complaint-card-upvotes.active {
+    color: var(--color-accent);
+}
+
 .complaint-rating {
     display: flex;
     align-items: center;

@@ -9,6 +9,7 @@ import {
     Shield,
     X,
     Menu,
+    Megaphone,
 } from 'lucide-react';
 import { useState } from 'react';
 import './Sidebar.css';
@@ -25,8 +26,9 @@ export default function Sidebar() {
 
     const navItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/announcements', icon: Megaphone, label: 'Notice Board' },
         { path: '/complaints', icon: MessageSquareWarning, label: 'Complaints' },
-        { path: '/complaints/new', icon: PlusCircle, label: 'New Complaint' },
+        { path: '/complaints/new', icon: PlusCircle, label: 'New Complaint', studentOnly: true },
         { path: '/profile', icon: User, label: 'Profile' },
     ];
 
@@ -77,7 +79,9 @@ export default function Sidebar() {
 
                 {/* Navigation */}
                 <nav className="sidebar-nav">
-                    {navItems.map(({ path, icon: Icon, label }) => (
+                    {navItems
+                        .filter(item => !item.studentOnly || user?.role === 'student')
+                        .map(({ path, icon: Icon, label }) => (
                         <NavLink
                             key={path}
                             to={path}

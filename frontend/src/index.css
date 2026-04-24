@@ -452,6 +452,13 @@ img {
   animation: pulse-badge 2s infinite;
 }
 
+.badge-escalated {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  animation: pulse-badge 2s infinite;
+}
+
 @keyframes pulse-badge {
 
   0%,

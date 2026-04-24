@@ -6,6 +6,13 @@ const { createNotification } = require('./notificationController');
 // @access  Private
 exports.createComplaint = async (req, res) => {
     try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({
+                success: false,
+                message: 'Only students are authorized to create complaints',
+            });
+        }
+
         const { title, description, category, priority, hostel, room } = req.body;
 
         const images = req.files ? req.files.map(file => file.path) : [];
@@ -536,6 +543,102 @@ exports.reopenComplaint = async (req, res) => {
         res.json({
             success: true,
             data: complaint,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// @desc    Edit comment
+// @route   PUT /api/complaints/:id/comments/:commentId
+// @access  Private
+exports.editComment = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Find the comment
+        const comment = complaint.comments.id(req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Comment not found',
+            });
+        }
+
+        // Only the comment creator can edit it
+        if (comment.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to edit this comment',
+            });
+        }
+
+        // Update the comment text
+        comment.text = req.body.text;
+
+        await complaint.save();
+
+        res.json({
+            success: true,
+            data: comment,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// @desc    Delete comment
+// @route   DELETE /api/complaints/:id/comments/:commentId
+// @access  Private
+exports.deleteComment = async (req, res) => {
+    try {
+        const complaint = await Complaint.findById(req.params.id);
+
+        if (!complaint) {
+            return res.status(404).json({
+                success: false,
+                message: 'Complaint not found',
+            });
+        }
+
+        // Find the comment
+        const comment = complaint.comments.id(req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({
+                success: false,
+                message: 'Comment not found',
+            });
+        }
+
+        // Only the comment creator can delete it
+        if (comment.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized to delete this comment',
+            });
+        }
+
+        // Remove the comment
+        complaint.comments.pull(req.params.commentId);
+
+        await complaint.save();
+
+        res.json({
+            success: true,
+            message: 'Comment deleted successfully',
         });
     } catch (error) {
         res.status(500).json({

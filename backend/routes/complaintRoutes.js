@@ -7,6 +7,8 @@ const {
     updateComplaint,
     getComplaintStats,
     addComment,
+    editComment,
+    deleteComment,
     upvoteComplaint,
     deleteComplaint,
     submitFeedback,
@@ -23,6 +25,10 @@ router.route('/')
     .post(upload.array('images', 5), createComplaint);
 
 router.get('/stats', getComplaintStats);
+
+router.route('/:id/comments/:commentId')
+    .put(editComment)
+    .delete(deleteComment);
 
 router.post('/:id/comments', addComment);
 router.post('/:id/upvote', upvoteComplaint);

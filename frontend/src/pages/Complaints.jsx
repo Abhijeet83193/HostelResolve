@@ -221,9 +221,16 @@ export default function Complaints() {
                             <Link to={`/complaints/${complaint.id}`} className="complaint-card">
                                 <div className="complaint-card-header">
                                     <div className="complaint-card-id">{complaint.id}</div>
-                                    <span className={`badge ${getStatusBadge(complaint.status)}`}>
-                                        {complaint.status}
-                                    </span>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        {complaint.isEscalated && (
+                                            <span className="badge badge-escalated">
+                                                Escalated
+                                            </span>
+                                        )}
+                                        <span className={`badge ${getStatusBadge(complaint.status)}`}>
+                                            {complaint.status}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {complaint.images && complaint.images.length > 0 && (
@@ -262,7 +269,7 @@ export default function Complaints() {
                                         <span>•</span>
                                         <span>{formatDate(complaint.createdAt)}</span>
                                     </div>
-                                    <div className="complaint-card-upvotes">
+                                    <div className={`complaint-card-upvotes ${complaint.upvotedBy?.includes(user?._id || user?.id) ? 'active' : ''}`}>
                                         {complaint.status === 'Resolved' && (
                                             <>
                                                 {complaint.feedback?.rating ? (
@@ -270,7 +277,7 @@ export default function Complaints() {
                                                         <Star size={12} fill="#f59e0b" color="#f59e0b" />
                                                         <span>{complaint.feedback.rating}</span>
                                                     </div>
-                                                ) : (user._id === complaint.createdBy?._id || user.id === complaint.createdBy?.id) ? (
+                                                ) : (user?._id === complaint.createdBy?._id || user?.id === complaint.createdBy?.id) ? (
                                                     <div className="complaint-needs-feedback">
                                                         Needs Feedback
                                                     </div>

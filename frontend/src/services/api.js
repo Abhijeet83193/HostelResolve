@@ -103,7 +103,11 @@ export const complaintService = {
         const complaint = data.data;
         return {
             ...complaint,
-            id: complaint._id
+            id: complaint._id,
+            comments: complaint.comments.map(c => ({
+                ...c,
+                id: c._id
+            }))
         };
     },
 
@@ -129,7 +133,11 @@ export const complaintService = {
             method: 'POST',
             body: JSON.stringify({ text }),
         });
-        return data.data;
+        const comment = data.data;
+        return {
+            ...comment,
+            id: comment._id
+        };
     },
 
     async upvote(id) {
@@ -165,6 +173,26 @@ export const complaintService = {
         });
         return data.data;
     },
+
+    // Comment CRUD operations
+    async editComment(id, commentId, text) {
+        const data = await fetchWithAuth(`/complaints/${id}/comments/${commentId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ text }),
+        });
+        const comment = data.data;
+        return {
+            ...comment,
+            id: comment._id
+        };
+    },
+
+    async deleteComment(id, commentId) {
+        const data = await fetchWithAuth(`/complaints/${id}/comments/${commentId}`, {
+            method: 'DELETE',
+        });
+        return data.data;
+    },
 };
 
 // ---- Categories & Constants ----
@@ -192,3 +220,22 @@ export const HOSTELS = [
     'Girls Hostel 2',
 ];
 
+export const announcementService = {
+    getAll: async () => {
+        const data = await fetchWithAuth('/announcements');
+        return data.data;
+    },
+    create: async (formData) => {
+        const data = await fetchWithAuth('/announcements', {
+            method: 'POST',
+            body: formData,
+        });
+        return data.data;
+    },
+    delete: async (id) => {
+        const data = await fetchWithAuth(`/announcements/${id}`, {
+            method: 'DELETE',
+        });
+        return data;
+    },
+};

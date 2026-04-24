@@ -15,7 +15,7 @@ import {
     Calendar,
     MessageSquare,
     Star,
-    RefreshCcw,
+    RefreshCcw, CheckCircle, Play, XCircle,
 } from 'lucide-react';
 import './ComplaintDetail.css';
 
@@ -34,6 +34,9 @@ export default function ComplaintDetail() {
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [resolvedFiles, setResolvedFiles] = useState([]);
     const [tempResolvedImages, setTempResolvedImages] = useState([]);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editCommentText, setEditCommentText] = useState('');
+    const [existingResolvedImages, setExistingResolvedImages] = useState([]);
 
     useEffect(() => {
         loadComplaint();
@@ -43,6 +46,15 @@ export default function ComplaintDetail() {
         try {
             const data = await complaintService.getById(id);
             setComplaint(data);
+            
+            // Initialize upvoted state
+            if (data.upvotedBy && user) {
+                const userId = user._id || user.id;
+                setUpvoted(data.upvotedBy.includes(userId));
+            }
+
+            // Initialize existing resolved images
+            setExistingResolvedImages(data.resolvedImages || []);
         } catch (err) {
             console.error('Failed to load complaint:', err);
         } finally {
@@ -51,26 +63,19 @@ export default function ComplaintDetail() {
     };
 
     const handleUpvote = async () => {
-        if (upvoted) return;
         try {
             const response = await complaintService.upvote(id);
             setComplaint(prev => ({
                 ...prev,
                 upvotes: response.upvotes
             }));
-            setUpvoted(true);
+            setUpvoted(!upvoted);
         } catch (err) {
             console.error('Upvote failed:', err);
         }
     };
 
     const handleStatusChange = async (newStatus) => {
-        if (newStatus === 'Resolved' && resolvedFiles.length === 0) {
-            // If they haven't uploaded images yet, we might want to confirm or just proceed?
-            // The requirement says "option aa jaye", so let's allow it but maybe warn if empty?
-            // Actually, let's just use the current state.
-        }
-
         try {
             setUpdatingStatus(true);
             
@@ -83,6 +88,11 @@ export default function ComplaintDetail() {
                 });
             }
 
+            // Include existing resolved images to keep them
+            existingResolvedImages.forEach(img => {
+                formData.append('existingResolvedImages', img);
+            });
+
             const updated = await complaintService.update(id, formData);
             setComplaint(prev => ({ 
                 ...prev, 
@@ -90,10 +100,9 @@ export default function ComplaintDetail() {
                 resolvedImages: updated.resolvedImages 
             }));
             
-            if (newStatus === 'Resolved') {
-                setResolvedFiles([]);
-                setTempResolvedImages([]);
-            }
+            setExistingResolvedImages(updated.resolvedImages || []);
+            setResolvedFiles([]);
+            setTempResolvedImages([]);
             
             alert(`Status updated to ${newStatus}`);
         } catch (err) {
@@ -106,8 +115,8 @@ export default function ComplaintDetail() {
 
     const handleResolvedFileChange = (e) => {
         const files = Array.from(e.target.files);
-        if (files.length + resolvedFiles.length > 5) {
-            return alert('You can upload up to 5 images only');
+        if (files.length + resolvedFiles.length + existingResolvedImages.length > 5) {
+            return alert('You can have up to 5 images only (existing + new)');
         }
 
         setResolvedFiles(prev => [...prev, ...files]);
@@ -120,6 +129,10 @@ export default function ComplaintDetail() {
     const removeFile = (index) => {
         setResolvedFiles(prev => prev.filter((_, i) => i !== index));
         setTempResolvedImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeExistingResolvedImage = (index) => {
+        setExistingResolvedImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleDelete = async () => {
@@ -150,6 +163,41 @@ export default function ComplaintDetail() {
             console.error('Comment failed:', err);
         } finally {
             setCommenting(false);
+        }
+    };
+
+    const handleEditComment = async (e, commentId) => {
+        e.preventDefault();
+        if (!editCommentText.trim()) return;
+        try {
+            const updatedComment = await complaintService.editComment(id, commentId, editCommentText);
+            // Update the comment in the local state
+            setComplaint(prev => ({
+                ...prev,
+                comments: prev.comments.map(comment => 
+                    comment.id === commentId ? { ...comment, text: updatedComment.text } : comment
+                )
+            }));
+            setEditingCommentId(null);
+            setEditCommentText('');
+        } catch (err) {
+            console.error('Edit comment failed:', err);
+            alert(err.message || 'Failed to edit comment');
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm('Are you sure you want to delete this comment?')) return;
+        try {
+            await complaintService.deleteComment(id, commentId);
+            // Remove the comment from the local state
+            setComplaint(prev => ({
+                ...prev,
+                comments: prev.comments.filter(comment => comment.id !== commentId)
+            }));
+        } catch (err) {
+            console.error('Delete comment failed:', err);
+            alert(err.message || 'Failed to delete comment');
         }
     };
 
@@ -265,6 +313,11 @@ export default function ComplaintDetail() {
                             <div className="detail-header-top">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <span className="detail-id">{complaint.id}</span>
+                                    {complaint.isEscalated && (
+                                        <span className="badge badge-escalated">
+                                            Escalated
+                                        </span>
+                                    )}
                                     <span className={`badge ${getStatusBadge(complaint.status)}`}>
                                         {complaint.status}
                                     </span>
@@ -431,31 +484,83 @@ export default function ComplaintDetail() {
                             {complaint.comments.length === 0 ? (
                                 <p className="detail-no-comments">No comments yet. Be the first to respond.</p>
                             ) : (
-                                <div className="detail-comments">
-                                    {complaint.comments.map((c, idx) => (
-                                        <motion.div
-                                            key={c.id}
-                                            className="detail-comment"
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                        >
-                                            <div className="avatar avatar-sm">
-                                                {getInitials(c.user?.name)}
-                                            </div>
-                                            <div className="detail-comment-content">
-                                                <div className="detail-comment-header">
-                                                    <span className="detail-comment-name">{c.user?.name}</span>
-                                                    {c.user?.role === 'warden' && (
-                                                        <span className="detail-comment-role">Warden</span>
-                                                    )}
-                                                    <span className="detail-comment-time">{formatDate(c.createdAt)}</span>
+                                    <div className="detail-comments">
+                                        {complaint.comments.map((c, idx) => (
+                                            <motion.div
+                                                key={c.id}
+                                                className="detail-comment"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.05 }}
+                                            >
+                                                <div className="avatar avatar-sm">
+                                                    {getInitials(c.user?.name)}
                                                 </div>
-                                                <p className="detail-comment-text">{c.text}</p>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
+                                                <div className="detail-comment-content">
+                                                    <div className="detail-comment-header">
+                                                        <span className="detail-comment-name">{c.user?.name}</span>
+                                                        {c.user?.role === 'warden' && (
+                                                            <span className="detail-comment-role">Warden</span>
+                                                        )}
+                                                        <span className="detail-comment-time">{formatDate(c.createdAt)}</span>
+                                                        {/* Edit/Delete buttons for comment creator */}
+                                                        {(user?._id === c.user?._id || user?.id === c.user?.id || user?._id === c.user || user?.id === c.user) && (
+                                                            <div className="comment-actions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="comment-action-btn btn-ghost"
+                                                                    onClick={() => {
+                                                                        setEditingCommentId(c.id);
+                                                                        setEditCommentText(c.text);
+                                                                    }}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="comment-action-btn btn-ghost"
+                                                                    onClick={() => handleDeleteComment(c.id)}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {editingCommentId === c.id ? (
+                                                        <form className="edit-comment-form" onSubmit={e => handleEditComment(e, c.id)}>
+                                                            <textarea
+                                                                className="form-input"
+                                                                value={editCommentText}
+                                                                onChange={(e) => setEditCommentText(e.target.value)}
+                                                                rows="2"
+                                                            />
+                                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                                <button
+                                                                    type="submit"
+                                                                    className="btn btn-primary btn-sm"
+                                                                    disabled={!editCommentText.trim()}
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-ghost btn-sm"
+                                                                    onClick={() => {
+                                                                        setEditingCommentId(null);
+                                                                        setEditCommentText('');
+                                                                    }}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    ) : (
+                                                        <p className="detail-comment-text">{c.text}</p>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
                             )}
 
                             {/* Add Comment */}
@@ -493,63 +598,105 @@ export default function ComplaintDetail() {
                         {user.role === 'warden' && (
                             <div className="detail-sidebar-card">
                                 <h4 className="detail-sidebar-title">Status Management</h4>
-                                <div className="detail-info-grid">
-                                    <div className="form-group">
-                                        <label className="form-label">Update Status</label>
-                                        <select
-                                            className="form-select"
-                                            value={complaint.status}
-                                            onChange={(e) => handleStatusChange(e.target.value)}
+                                <div className="status-management-grid">
+                                    <button 
+                                        className={`status-manage-btn ${complaint.status === 'In Progress' ? 'active' : ''}`}
+                                        onClick={() => handleStatusChange('In Progress')}
+                                        disabled={updatingStatus}
+                                    >
+                                        <Play size={18} />
+                                        In Progress
+                                    </button>
+                                    <button 
+                                        className={`status-manage-btn ${complaint.status === 'Rejected' ? 'active' : ''}`}
+                                        onClick={() => handleStatusChange('Rejected')}
+                                        disabled={updatingStatus}
+                                    >
+                                        <XCircle size={18} />
+                                        Reject
+                                    </button>
+                                    <button 
+                                        className={`status-manage-btn ${complaint.status === 'Pending' ? 'active' : ''}`}
+                                        onClick={() => handleStatusChange('Pending')}
+                                        disabled={updatingStatus}
+                                    >
+                                        <Clock size={18} />
+                                        Pending
+                                    </button>
+                                    <button 
+                                        className={`status-manage-btn ${complaint.status === 'Resolved' ? 'active' : ''}`}
+                                        onClick={() => handleStatusChange('Resolved')}
+                                        disabled={updatingStatus}
+                                    >
+                                        <CheckCircle size={18} />
+                                        Resolved
+                                    </button>
+                                </div>
+
+                                <div className="resolved-proof-section">
+                                    <label className="form-label">Resolution Proof</label>
+                                    <p className="field-hint">Upload images to show completed work</p>
+                                    
+                                    <div className="proof-upload-zone">
+                                        <input
+                                            type="file"
+                                            id="resolved-images"
+                                            multiple
+                                            accept="image/*"
+                                            className="hidden-input"
+                                            onChange={handleResolvedFileChange}
+                                        />
+                                        <label htmlFor="resolved-images" className="upload-btn-outline">
+                                            <Send size={14} /> {resolvedFiles.length > 0 ? `${resolvedFiles.length} New Selected` : 'Select New Images'}
+                                        </label>
+
+                                        {/* Existing Proof Previews */}
+                                        {existingResolvedImages.length > 0 && (
+                                            <div className="temp-previews">
+                                                <p className="field-hint" style={{ width: '100%', marginBottom: '0.25rem' }}>Existing Proof:</p>
+                                                {existingResolvedImages.map((src, i) => (
+                                                    <div key={`existing-${i}`} className="temp-preview-item existing">
+                                                        <img src={src} alt="Existing" />
+                                                        <button 
+                                                            className="remove-temp-img"
+                                                            onClick={() => removeExistingResolvedImage(i)}
+                                                            title="Remove existing proof"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* New Proof Previews */}
+                                        {tempResolvedImages.length > 0 && (
+                                            <div className="temp-previews">
+                                                <p className="field-hint" style={{ width: '100%', marginBottom: '0.25rem' }}>New Proof:</p>
+                                                {tempResolvedImages.map((src, i) => (
+                                                    <div key={`new-${i}`} className="temp-preview-item">
+                                                        <img src={src} alt="New Preview" />
+                                                        <button 
+                                                            className="remove-temp-img"
+                                                            onClick={() => removeFile(i)}
+                                                            title="Remove new proof"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <button 
+                                            className="btn btn-primary btn-block" 
+                                            onClick={() => handleStatusChange('Resolved')}
                                             disabled={updatingStatus}
+                                            style={{ marginTop: '0.5rem' }}
                                         >
-                                            {STATUSES.map(s => (
-                                                <option key={s} value={s}>{s}</option>
-                                            ))}
-                                        </select>
+                                            {updatingStatus ? 'Updating...' : (complaint.status === 'Resolved' ? 'Update Resolution' : 'Mark as Resolved')}
+                                        </button>
                                     </div>
-
-                                    {complaint.status !== 'Resolved' && (
-                                        <div className="resolved-proof-upload">
-                                            <label className="form-label">Resolution Proof (Optional)</label>
-                                            <p className="field-hint">Upload images to show completed work</p>
-                                            <input
-                                                type="file"
-                                                id="resolved-images"
-                                                multiple
-                                                accept="image/*"
-                                                className="hidden-input"
-                                                onChange={handleResolvedFileChange}
-                                            />
-                                            <label htmlFor="resolved-images" className="upload-btn-outline">
-                                                <Send size={14} /> Select Images
-                                            </label>
-
-                                            {tempResolvedImages.length > 0 && (
-                                                <div className="temp-previews">
-                                                    {tempResolvedImages.map((src, i) => (
-                                                        <div key={i} className="temp-preview-item">
-                                                            <img src={src} alt="Preview" />
-                                                            <button 
-                                                                className="remove-temp-img"
-                                                                onClick={() => removeFile(i)}
-                                                            >
-                                                                &times;
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <button 
-                                                className="btn btn-primary btn-block" 
-                                                style={{ marginTop: '1rem' }}
-                                                onClick={() => handleStatusChange('Resolved')}
-                                                disabled={updatingStatus}
-                                            >
-                                                {updatingStatus ? 'Updating...' : 'Mark as Resolved'}
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}

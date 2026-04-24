@@ -12,6 +12,8 @@ import NewComplaint from './pages/NewComplaint';
 import ComplaintDetail from './pages/ComplaintDetail';
 import EditComplaint from './pages/EditComplaint';
 import Profile from './pages/Profile';
+import Announcements from './pages/Announcements';
+import NewAnnouncement from './pages/NewAnnouncement';
 import NotFound from './pages/NotFound';
 import './App.css';
 
@@ -128,6 +130,26 @@ function App() {
           <ProtectedRoute>
             <AppLayout>
               <Profile />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Announcements />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements/new"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <NewAnnouncement />
             </AppLayout>
           </ProtectedRoute>
         }

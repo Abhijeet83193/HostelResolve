@@ -8,11 +8,15 @@ dotenv.config();
 const startServer = async () => {
     try {
         await connectDB();
+        
+        // Start escalation cron job
+        const startEscalationCronJob = require('./utils/escalationCron');
+        startEscalationCronJob();
 
         const app = express();
 
         const corsOptions = {
-            origin: ['https://hostelresolve-frontend.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
+            origin: ['https://hostelresolve-frontend.onrender.com', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'],
             credentials: true,
         };
         app.use(cors(corsOptions));
@@ -36,6 +40,9 @@ const startServer = async () => {
         app.use('/api/complaints', complaintRoutes);
         console.log('Complaint routes mounted');
 
+        app.use('/api/announcements', require('./routes/announcementRoutes'));
+        console.log('Announcement routes mounted');
+
         const notificationRoutes = require('./routes/notificationRoutes');
         console.log('Notification routes module loaded:', !!notificationRoutes);
         app.use('/api/notifications', notificationRoutes);
@@ -57,7 +64,7 @@ const startServer = async () => {
 
         const PORT = process.env.PORT || 5000;
         
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
         });
     } catch (error) {

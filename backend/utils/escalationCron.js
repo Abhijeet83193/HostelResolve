@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const Complaint = require('../models/Complaint');
 const sendEmail = require('./sendEmail');
 
-const scheduleTime = process.env.NODE_ENV === 'development' ? '*/1 * * * *' : '0 10 * * *';
+const scheduleTime = '*/1 * * * *';
 
 const startEscalationCronJob = () => {
     console.log(`⏱️  Escalation Cron Job scheduled: ${scheduleTime}`);
@@ -11,9 +11,9 @@ const startEscalationCronJob = () => {
         console.log('🔍 Running automated complaint escalation check...');
         
         try {
-            const timeToEscalateMs = process.env.NODE_ENV === 'development' ? 5 * 60 * 1000 : 48 * 60 * 60 * 1000;
+            const timeToEscalateMs = 5 * 60 * 1000; // 5 minutes for testing
             const escalateTimeThreshold = new Date(Date.now() - timeToEscalateMs);
-            const timeDisplayStr = process.env.NODE_ENV === 'development' ? '5 minutes' : '48 hours';
+            const timeDisplayStr = '5 minutes';
 
             const pendingComplaintsToEscalate = await Complaint.find({
                 status: { $in: ['Pending', 'In Progress'] },

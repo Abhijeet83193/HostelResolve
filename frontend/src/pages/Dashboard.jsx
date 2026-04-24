@@ -145,10 +145,17 @@ export default function Dashboard() {
                         </h1>
                         <p className="page-subtitle">Here's an overview of your hostel complaints</p>
                     </div>
-                    <Link to="/complaints/new" className="btn btn-primary">
-                        <PlusCircle size={18} />
-                        New Complaint
-                    </Link>
+                    {user?.role === 'student' ? (
+                        <Link to="/complaints/new" className="btn btn-primary">
+                            <PlusCircle size={18} />
+                            New Complaint
+                        </Link>
+                    ) : (
+                        <Link to="/announcements/new" className="btn btn-primary">
+                            <PlusCircle size={18} />
+                            New Post
+                        </Link>
+                    )}
                 </motion.div>
 
                 {/* Stats Grid */}
@@ -221,7 +228,14 @@ export default function Dashboard() {
                                         <div className="complaint-list-content">
                                             <div className="complaint-list-top">
                                                 <span className="complaint-list-id">{complaint.id}</span>
-                                                <span className={`badge ${getStatusBadge(complaint.status)}`}>{complaint.status}</span>
+                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                    {complaint.isEscalated && (
+                                                        <span className="badge badge-escalated" style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem' }}>
+                                                            Escalated
+                                                        </span>
+                                                    )}
+                                                    <span className={`badge ${getStatusBadge(complaint.status)}`}>{complaint.status}</span>
+                                                </div>
                                             </div>
                                             <h4 className="complaint-list-title">{complaint.title}</h4>
                                             <div className="complaint-list-meta">
