@@ -15,6 +15,21 @@ exports.createComplaint = async (req, res) => {
 
         const { title, description, category, priority, hostel, room } = req.body;
 
+        // Prevent duplicate submissions - check if same complaint was created within last 5 seconds
+        const recentComplaint = await Complaint.findOne({
+            createdBy: req.user._id,
+            title: title,
+            createdAt: { $gte: new Date(Date.now() - 5000) }
+        });
+
+        if (recentComplaint) {
+            return res.status(429).json({
+                success: false,
+                message: 'Duplicate submission detected. Please wait before submitting again.',
+                data: recentComplaint
+            });
+        }
+
         const images = req.files ? req.files.map(file => file.path) : [];
 
         const complaint = await Complaint.create({

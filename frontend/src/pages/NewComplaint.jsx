@@ -71,6 +71,9 @@ export default function NewComplaint() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (loading) return;
+        
         const { title, description, category, hostel, room, priority } = formData;
 
         if (!title || !description || !category || !hostel || !room) {
